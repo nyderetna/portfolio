@@ -3,12 +3,120 @@
 @tailwind utilities;
 @tailwind variants;
 
-body {
-  font-family: "Inter", sans-serif;
+/* ============================================================
+   CSS CUSTOM PROPERTIES (Houdini @property)
+   ============================================================ */
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 135deg;
+  inherits: false;
 }
 
+@property --glow-opacity {
+  syntax: "<number>";
+  initial-value: 0;
+  inherits: false;
+}
+
+@property --card-shine-x {
+  syntax: "<percentage>";
+  initial-value: 50%;
+  inherits: false;
+}
+
+@property --card-shine-y {
+  syntax: "<percentage>";
+  initial-value: 50%;
+  inherits: false;
+}
+
+/* ============================================================
+   BASE / RESET
+   ============================================================ */
+body {
+  font-family: "Inter", sans-serif;
+  /* Custom cursor – default state */
+  cursor: none;
+}
+
+/* ============================================================
+   CUSTOM CURSOR
+   ============================================================ */
+#cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  background: #0ea5e9;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  /* transform is written every rAF frame by animations.js – no CSS transition needed */
+  box-shadow: 0 0 8px #0ea5e9, 0 0 20px #0ea5e980;
+  /* will-change set by JS only while interacting, not globally */
+}
+
+#cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(14, 165, 233, 0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  /* Only non-transform properties transition via CSS; transform is rAF-driven */
+  transition: width 0.25s ease, height 0.25s ease, border-color 0.25s ease,
+    opacity 0.15s ease;
+}
+
+body:has(a:hover) #cursor-dot,
+body:has(button:hover) #cursor-dot {
+  width: 18px;
+  height: 18px;
+  background: #38bdf8;
+}
+
+body:has(a:hover) #cursor-ring,
+body:has(button:hover) #cursor-ring {
+  width: 56px;
+  height: 56px;
+  border-color: rgba(56, 189, 248, 0.7);
+}
+
+/* ============================================================
+   SCROLL-REVEAL  (IntersectionObserver toggled)
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger siblings */
+.reveal:nth-child(2) {
+  transition-delay: 0.1s;
+}
+.reveal:nth-child(3) {
+  transition-delay: 0.2s;
+}
+.reveal:nth-child(4) {
+  transition-delay: 0.3s;
+}
+
+/* ============================================================
+   NAVBAR
+   ============================================================ */
 .navbar-fixed {
-  @apply fixed z-[9999] bg-white bg-opacity-80 backdrop-blur-sm dark:bg-dark dark:bg-opacity-50;
+  @apply fixed z-[9999] bg-white bg-opacity-90 backdrop-blur-sm dark:bg-slate-900 dark:bg-opacity-90;
   box-shadow: inset 0 -1px 0 0 rgba(0, 0, 0, 0.2);
 }
 
@@ -19,15 +127,900 @@ body {
 .hamburger-active > span:nth-child(1) {
   @apply rotate-45;
 }
-
 .hamburger-active > span:nth-child(2) {
   @apply scale-0;
 }
-
 .hamburger-active > span:nth-child(3) {
   @apply -rotate-45;
 }
 
+/* ============================================================
+   LANGUAGE SELECTOR
+   ============================================================ */
+/* Hide Google Translate injected toolbar & badge */
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+#goog-gt-tt,
+.goog-tooltip,
+.goog-tooltip:hover,
+.goog-te-menu-value:hover {
+  display: none !important;
+}
+body {
+  top: 0 !important;
+}
+.goog-logo-link,
+.goog-te-gadget span {
+  display: none !important;
+}
+.goog-te-gadget {
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Custom language dropdown trigger */
+.lang-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  background: rgba(14, 165, 233, 0.07);
+  color: #0ea5e9;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+  user-select: none;
+}
+.lang-btn:hover {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.6);
+}
+.dark .lang-btn {
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(14, 165, 233, 0.4);
+  color: #38bdf8;
+}
+.lang-btn svg {
+  flex-shrink: 0;
+}
+.lang-btn .lang-arrow {
+  transition: transform 0.2s ease;
+  margin-left: 2px;
+}
+.lang-select-wrap.open .lang-arrow {
+  transform: rotate(180deg);
+}
+
+/* Dropdown panel */
+.lang-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: #f7f6f3;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(14, 165, 233, 0.1);
+  overflow: hidden;
+  z-index: 10000;
+  animation: langDropIn 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.dark .lang-dropdown {
+  background: #1e293b;
+  border-color: rgba(14, 165, 233, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(14, 165, 233, 0.15);
+}
+.lang-select-wrap.open .lang-dropdown {
+  display: block;
+}
+@keyframes langDropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Dropdown items */
+.lang-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dark .lang-option {
+  color: #cbd5e1;
+}
+.lang-option:hover {
+  background: rgba(14, 165, 233, 0.08);
+  color: #0ea5e9;
+}
+.dark .lang-option:hover {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+}
+.lang-option.active {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0ea5e9;
+  font-weight: 700;
+}
+.dark .lang-option.active {
+  background: rgba(14, 165, 233, 0.18);
+  color: #38bdf8;
+}
+.lang-flag {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 #dark-toggle:checked ~ label div.toggle-circle {
   @apply translate-x-3;
+}
+
+/* Nav link underline pseudo-selector */
+nav a {
+  position: relative;
+}
+
+/* Ensure nav links are always readable in dark mode (header starts transparent) */
+.dark nav a {
+  color: #f1f5f9; /* slate-100 */
+}
+.dark nav a:hover {
+  color: #0ea5e9;
+}
+
+nav a::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  right: 50%;
+  height: 2px;
+  background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+  border-radius: 2px;
+  transition: left 0.3s ease, right 0.3s ease;
+}
+
+nav a:hover::after,
+nav a:focus-visible::after {
+  left: 0;
+  right: 0;
+}
+
+/* ============================================================
+   HERO SECTION  – animated gradient + SVG noise pattern
+   ============================================================ */
+#home {
+  position: relative;
+  overflow: hidden;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='1.2' fill='%230ea5e920'/%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%230ea5e915'/%3E%3Ccircle cx='50' cy='50' r='0.7' fill='%230ea5e915'/%3E%3C/svg%3E"),
+    radial-gradient(
+      ellipse 80% 60% at 70% 40%,
+      rgba(14, 165, 233, 0.12) 0%,
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 50% 50% at 20% 80%,
+      rgba(99, 102, 241, 0.08) 0%,
+      transparent 60%
+    );
+  background-size: 60px 60px, cover, cover;
+}
+
+.dark #home {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='1.2' fill='%230ea5e925'/%3E%3Ccircle cx='10' cy='10' r='0.7' fill='%230ea5e918'/%3E%3Ccircle cx='50' cy='50' r='0.7' fill='%230ea5e918'/%3E%3C/svg%3E"),
+    radial-gradient(
+      ellipse 80% 60% at 70% 40%,
+      rgba(14, 165, 233, 0.18) 0%,
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 50% 50% at 20% 80%,
+      rgba(99, 102, 241, 0.14) 0%,
+      transparent 60%
+    );
+  background-size: 60px 60px, cover, cover;
+}
+
+/* Floating animated orbs */
+#home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle 500px at var(--orb-x, 70%) var(--orb-y, 40%),
+    rgba(14, 165, 233, 0.15) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+  animation: orb-drift 12s ease-in-out infinite alternate;
+}
+
+#home::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(to bottom, transparent, #f7f6f3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dark #home::after {
+  background: linear-gradient(to bottom, transparent, #0f172a);
+}
+
+@keyframes orb-drift {
+  0% {
+    background-position: 70% 40%;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    background-position: 30% 60%;
+    opacity: 0.6;
+  }
+}
+
+/* Hero text gradient on name */
+.hero-name {
+  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 50%, #0ea5e9 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: text-shimmer 4s linear infinite;
+}
+
+@keyframes text-shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Hero image – clip-path polygon frame */
+.hero-img-frame {
+  clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%);
+  filter: drop-shadow(0 20px 40px rgba(14, 165, 233, 0.3));
+  transition: filter 0.4s ease, clip-path 0.4s ease;
+}
+
+.hero-img-frame:hover {
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+  filter: drop-shadow(0 25px 50px rgba(14, 165, 233, 0.45));
+}
+
+/* Blob behind hero image – SVG shape animation */
+.hero-blob {
+  animation: blob-morph 8s ease-in-out infinite;
+  filter: blur(0px);
+  opacity: 0.9;
+}
+
+@keyframes blob-morph {
+  0%,
+  100% {
+    transform: translate(100px, 100px) scale(1.1) rotate(0deg);
+  }
+  33% {
+    transform: translate(100px, 100px) scale(1.15) rotate(8deg);
+  }
+  66% {
+    transform: translate(100px, 100px) scale(1.08) rotate(-6deg);
+  }
+}
+
+/* CTA button */
+.btn-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn-cta::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    var(--gradient-angle),
+    #0ea5e9,
+    #6366f1,
+    #22d3ee,
+    #0ea5e9
+  );
+  background-size: 300% 300%;
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  animation: gradient-angle-spin 4s linear infinite,
+    gradient-bg-move 3s ease infinite;
+  transition: opacity 0.3s ease;
+}
+
+.btn-cta:hover::before {
+  opacity: 1;
+}
+
+@keyframes gradient-angle-spin {
+  to {
+    --gradient-angle: 495deg;
+  }
+}
+
+@keyframes gradient-bg-move {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* ============================================================
+   ABOUT SECTION
+   ============================================================ */
+#about {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Diagonal top divider */
+#about::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 100% 40%, 0 100%);
+  pointer-events: none;
+}
+
+/* Social icon enhanced hover */
+.social-icon {
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  isolation: isolate;
+}
+
+.social-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.25),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.social-icon:hover {
+  transform: translateY(-4px) scale(1.15);
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
+}
+
+.social-icon:hover::before {
+  opacity: 1;
+}
+
+/* :is() – shared heading styles */
+:is(#about, #portfolio, #timeline) h4 {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+:is(#about, #portfolio, #timeline) h2 {
+  position: relative;
+  display: inline-block;
+}
+
+:is(#about, #portfolio, #timeline) h2::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 48px;
+  height: 3px;
+  background: linear-gradient(90deg, #0ea5e9, #6366f1);
+  border-radius: 2px;
+}
+
+/* Center-aligned headings (portfolio, clients) */
+.section-heading-center h2::after {
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+}
+
+/* ============================================================
+   PORTFOLIO SECTION
+   ============================================================ */
+#portfolio {
+  position: relative;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect x='38' y='0' width='4' height='4' rx='1' fill='%230ea5e912'/%3E%3Crect x='0' y='38' width='4' height='4' rx='1' fill='%230ea5e912'/%3E%3Crect x='76' y='38' width='4' height='4' rx='1' fill='%230ea5e912'/%3E%3Crect x='38' y='76' width='4' height='4' rx='1' fill='%230ea5e912'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+  background-size: 80px 80px, cover;
+}
+
+.dark #portfolio {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect x='38' y='0' width='4' height='4' rx='1' fill='%230ea5e920'/%3E%3Crect x='0' y='38' width='4' height='4' rx='1' fill='%230ea5e920'/%3E%3Crect x='76' y='38' width='4' height='4' rx='1' fill='%230ea5e920'/%3E%3Crect x='38' y='76' width='4' height='4' rx='1' fill='%230ea5e920'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  background-size: 80px 80px, cover;
+}
+
+/* Portfolio cards */
+.portfolio-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.35s ease;
+  isolation: isolate;
+}
+
+.portfolio-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.08) 0%,
+    rgba(99, 102, 241, 0.06) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.portfolio-card:hover {
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 24px 48px rgba(14, 165, 233, 0.2),
+    0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.portfolio-card:hover::before {
+  opacity: 1;
+}
+
+/* Image overlay with blend mode */
+.portfolio-card .img-wrap {
+  position: relative;
+  overflow: hidden;
+  height: 220px;
+}
+
+.portfolio-card .img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.portfolio-card .img-wrap > svg,
+.portfolio-card .img-wrap > div {
+  width: 100%;
+  height: 100%;
+}
+
+.portfolio-card .img-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 40%,
+    rgba(14, 165, 233, 0.6) 100%
+  );
+  mix-blend-mode: multiply;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.portfolio-card:hover .img-wrap::after {
+  opacity: 1;
+}
+
+.portfolio-card .img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease;
+  filter: saturate(0.85) brightness(0.97);
+}
+
+.portfolio-card:hover .img-wrap img {
+  transform: scale(1.06);
+  filter: saturate(1.1) brightness(1.03);
+}
+
+/* nth-child alternating card accent */
+.portfolio-card:nth-child(odd) {
+  --card-accent: #0ea5e9;
+}
+.portfolio-card:nth-child(even) {
+  --card-accent: #6366f1;
+}
+
+.portfolio-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--card-accent), transparent);
+  border-radius: 12px 12px 0 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.portfolio-card:hover::after {
+  opacity: 1;
+}
+
+/* ============================================================
+   CLIENTS SECTION – blend mode overlay + gradient
+   ============================================================ */
+#clients {
+  position: relative;
+  background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 50%, #312e81 100%);
+  overflow: hidden;
+}
+
+#clients::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cpolygon points='50,5 95,25 95,75 50,95 5,75 5,25' fill='none' stroke='%230ea5e912' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 100px 100px;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+#clients::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0ea5e9, #6366f1, #0ea5e9);
+  background-size: 200% auto;
+  animation: gradient-slide 3s linear infinite;
+}
+
+@keyframes gradient-slide {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* "Coming Soon" client card */
+.client-coming-soon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  padding: 48px 32px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 16px;
+  background: rgba(14, 165, 233, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.client-coming-soon::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.3),
+    rgba(99, 102, 241, 0.3),
+    transparent
+  );
+  z-index: -1;
+  opacity: 0.5;
+}
+
+/* ============================================================
+   TIMELINE SECTION
+   ============================================================ */
+#timeline {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top wave clip */
+#timeline::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #475569;
+  clip-path: ellipse(55% 100% at 50% 0%);
+  pointer-events: none;
+  opacity: 0.15;
+}
+
+.dark #timeline::before {
+  background: #1e293b;
+}
+
+/* Timeline line glow */
+.timeline-item {
+  position: relative;
+}
+
+.timeline-dot {
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.timeline-dot::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.4), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.timeline-item:hover .timeline-dot {
+  transform: scale(1.3);
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.25);
+}
+
+.timeline-item:hover .timeline-dot::before {
+  opacity: 1;
+}
+
+/* Timeline card */
+.timeline-card {
+  position: relative;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border-left: 3px solid transparent;
+  background: linear-gradient(#f7f6f3, #f7f6f3) padding-box,
+    linear-gradient(135deg, #0ea5e9, #6366f1) border-box;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .timeline-card {
+  background: linear-gradient(#1e293b, #1e293b) padding-box,
+    linear-gradient(135deg, #0ea5e9, #6366f1) border-box;
+}
+
+.timeline-card:hover {
+  transform: translateX(6px);
+  box-shadow: -4px 0 20px rgba(14, 165, 233, 0.2);
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  position: relative;
+  overflow: hidden;
+}
+
+footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #0ea5e9,
+    #6366f1,
+    transparent
+  );
+}
+
+footer a {
+  position: relative;
+}
+
+/* Footer social icons re-use .social-icon */
+
+/* ============================================================
+   BACK TO TOP BUTTON
+   ============================================================ */
+#to-top {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  border: none;
+}
+
+#to-top:hover {
+  box-shadow: 0 8px 32px rgba(14, 165, 233, 0.6);
+  transform: translateY(-3px) scale(1.05);
+}
+
+/* ============================================================
+   HOUDINI PAINT WORKLET – animated spotlight
+   Registered in <script> inline worklet. CSS custom props
+   feed the worklet so it can be animated from JS.
+   ============================================================ */
+.houdini-hero-bg {
+  /* Consumed by paint worklet "hero-spotlight" */
+  --hl-x: 70;
+  --hl-y: 35;
+  --hl-color-r: 14;
+  --hl-color-g: 165;
+  --hl-color-b: 233;
+  background-image: paint(hero-spotlight);
+  /* Graceful fallback if worklet unavailable */
+  background-color: transparent;
+}
+
+/* ============================================================
+   UTILITY HELPERS
+   ============================================================ */
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Cinematic blur on scroll */
+@supports (animation-timeline: scroll()) {
+  .cinematic-header {
+    animation: header-blur linear both;
+    animation-timeline: scroll();
+    animation-range: 0px 200px;
+  }
+
+  @keyframes header-blur {
+    from {
+      backdrop-filter: blur(0px) brightness(1);
+    }
+    to {
+      backdrop-filter: blur(16px) brightness(0.95);
+    }
+  }
+}
+
+/* Mask-image fade edges on horizontal scroll container */
+.fade-mask-x {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+}
+
+/* ============================================================
+   ANIMATION ENGINE – CSS VARIABLE HOOKS
+   Written by animations.js via JS; declared here so CSS can
+   consume them before JS runs (avoids flash of un-styled state).
+   ============================================================ */
+
+/* Per-card spotlight driven by --mouse-x / --mouse-y (set by JS) */
+.portfolio-card {
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --reveal-ratio: 0;
+}
+
+/* Ratio-driven reveal base state (JS overrides inline before class fires) */
+.reveal {
+  --reveal-ratio: 0;
+}
+
+/* Parallax layers – depth tokens */
+[data-parallax] {
+  will-change: transform;
+}
+
+/* ============================================================
+   CARD TILT – 3-D perspective container
+   rotateX / rotateY written by rAF loop in animations.js
+   ============================================================ */
+.portfolio-card {
+  transform-style: preserve-3d;
+  transform-origin: center center;
+  /* perspective applied per-card so siblings don't share a vanishing point */
+  perspective: 800px;
+}
+
+/* ============================================================
+   REDUCED-MOTION SAFETY NET  (JS also guards this)
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .hero-blob,
+  .btn-cta::before,
+  #home::before,
+  #clients::after {
+    animation: none !important;
+  }
+
+  .hero-name {
+    animation: none !important;
+    background: #0ea5e9;
+  }
+
+  .portfolio-card {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  #cursor-dot,
+  #cursor-ring {
+    display: none !important;
+  }
 }

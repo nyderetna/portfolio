@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -9,20 +9,60 @@
     <script>
         // On page load or when changing themes, best to add inline in `head` to avoid FOUC
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark')
+            document.documentElement.classList.add('dark');
         } else {
-        document.documentElement.classList.remove('dark')
+            document.documentElement.classList.remove('dark');
         }
     </script>
+    <!-- Inline critical CSS: only the two properties that must be set before first paint -->
+    <style>html{scroll-behavior:smooth}body,a,button,label,input,select,textarea{cursor:none}</style>
 </head>
 <body>
-    <!-- <canvas id="canvas"></canvas> -->
+    <!-- Custom cursor elements -->
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <!-- SVG Defs â€“ reusable filters and patterns -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <!-- Glow filter for hero image -->
+            <filter id="glow-filter" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+                <feColorMatrix in="blur" type="matrix"
+                    values="0 0 0 0 0.055
+                            0 0 0 0 0.647
+                            0 0 0 0 0.914
+                            0 0 0 0.6 0" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+            <!-- Duotone filter for portfolio images on hover -->
+            <filter id="duotone-filter">
+                <feColorMatrix type="saturate" values="0.3"/>
+                <feComponentTransfer>
+                    <feFuncR type="linear" slope="0.85" intercept="0.05"/>
+                    <feFuncG type="linear" slope="0.9"  intercept="0.02"/>
+                    <feFuncB type="linear" slope="1.05" intercept="0.04"/>
+                </feComponentTransfer>
+            </filter>
+            <!-- Clip path for hero section diagonal -->
+            <clipPath id="hero-clip" clipPathUnits="objectBoundingBox">
+                <path d="M0,0 H1 V0.92 L0.95,1 H0 Z"/>
+            </clipPath>
+        </defs>
+    </svg>
     <!-- Navbar Section Start -->
-    <header class="bg-transparent absolute top-0 left-0 w-full flex items-center z-10">
+    <header class="bg-transparent absolute top-0 left-0 w-full flex items-center z-10 cinematic-header">
         <div class="container">
             <div class="flex items-center justify-between relative">
                 <div class="px-4">
-                    <a href="#home" class="font-bold text-lg text-primary block py-6"><img src="dist/img/dpr-no-bg.png" alt="danielpaulyr" width="40%"></a>
+                    <a href="#home" class="font-bold text-lg text-primary block py-6">
+                        <img src="dist/img/dpr-no-bg.png" alt="danielpaulyr" width="40%"
+                             class="dark:invert dark:brightness-200"
+                             style="filter: drop-shadow(0 2px 8px rgba(14,165,233,0.35));">
+                    </a>
                 </div>
                 <div class="flex items-center px-4">
                     <button id="hamburger" name="hamburger" type="button" class="block absolute right-4 lg:hidden">
@@ -49,16 +89,54 @@
                             </li>
                             <li class="mt-3 lg:mt-0 flex items-center pl-8">
                                 <div class="flex">
-                                    <span class="mr-2 text-sm text-slate-500">light</span>
+                                    <span class="mr-2 text-sm text-slate-500 dark:text-slate-300">light</span>
                                     <input type="checkbox" class="hidden" id="dark-toggle">
                                     <label for="dark-toggle">
-                                        <div class="flex h-5 w-9 cursor-pointer items-center rounded-full bg-slate-500 p-1">
-                                            <div class="toggle-circle h-4 w-4 rounded-full bg-white transition duration-300 ease-in-out">
-
-                                            </div>
+                                        <div class="flex h-5 w-9 items-center rounded-full p-1"
+                                             style="background: linear-gradient(135deg,#64748b,#475569);">
+                                            <div class="toggle-circle h-4 w-4 rounded-full bg-white transition duration-300 ease-in-out"
+                                                 style="box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div>
                                         </div>
                                     </label>
-                                    <span class="ml-2 text-sm text-slate-500"> dark</span>
+                                    <span class="ml-2 text-sm text-slate-500 dark:text-slate-300">dark</span>
+                                </div>
+                            </li>
+                            <!-- Language Selector -->
+                            <li class="mt-3 lg:mt-0 flex items-center pl-4 pr-2">
+                                <div class="lang-select-wrap" id="langWrap">
+                                    <button class="lang-btn" id="langBtn" aria-haspopup="listbox" aria-expanded="false">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                                        </svg>
+                                        <span id="langLabel">EN</span>
+                                        <svg class="lang-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"/>
+                                        </svg>
+                                    </button>
+                                    <div class="lang-dropdown" id="langDropdown" role="listbox">
+                                        <div class="lang-option active" data-lang="en"   data-label="EN" role="option">
+                                            <span class="lang-flag">🇬🇧</span> English
+                                        </div>
+                                        <div class="lang-option" data-lang="id"   data-label="ID" role="option">
+                                            <span class="lang-flag">🇮🇩</span> Indonesia
+                                        </div>
+                                        <div class="lang-option" data-lang="zh-CN" data-label="中文" role="option">
+                                            <span class="lang-flag">🇨🇳</span> 简体中文
+                                        </div>
+                                        <div class="lang-option" data-lang="ru"   data-label="RU" role="option">
+                                            <span class="lang-flag">🇷🇺</span> Русский
+                                        </div>
+                                        <div class="lang-option" data-lang="vi"   data-label="VI" role="option">
+                                            <span class="lang-flag">🇻🇳</span> Tiếng Việt
+                                        </div>
+                                        <div class="lang-option" data-lang="th"   data-label="TH" role="option">
+                                            <span class="lang-flag">🇹🇭</span> ภาษาไทย
+                                        </div>
+                                        <div class="lang-option" data-lang="es"   data-label="ES" role="option">
+                                            <span class="lang-flag">🇪🇸</span> Español
+                                        </div>
+                                    </div>
                                 </div>
                             </li>
                         </ul>
@@ -70,34 +148,51 @@
     <!-- Navbar Section End -->
 
     <!-- Hero Section Start -->
-    <section id="home" class="pt-36 dark:bg-dark">
-        <div class="container">
+    <section id="home" class="pt-36 dark:bg-dark houdini-hero-bg" id="home">
+        <div class="container relative z-10">
             <div class="flex flex-wrap">
-                <div class="w-full self-center px-4 lg:w-1/2">
-                    <h1 class="text-base font-semibold text-primary md:text-xl">Hello Guys 👋😁! I'm <span class="block font-bold text-dark text-4xl mt-1 lg:text-5xl dark:text-white">Daniel Pauly Retraubun</span></h1>
-                    <h2 class="font-medium text-secondary text-lg mb-5 lg:text-2xl dark:text-white">Programmer | <span class="text-slate-600 dark:text-white">Indonesia</span> | <span class="text-slate-700 dark:text-white">Southeast Maluku</span> | <span class="text-slate-800 dark:text-white">Kei</span></h2>
-                    <p class="font-medium text-secondary mb-10 reading-relaxed">Currently a T-Shaped person. Will become Comb-Shaped or X-Shaped one day 😎</p>
-
-                    <!-- <a href="https://wa.me/+6281319898985" class="text-base font-semibold text-white bg-slate-400 py-3 px-8 rounded-full hover:shadow-lg hover:opacity-80 transition duration-300 ease-in-out">    
-                        Contact Me
-                    </a> -->
-                    <a href="https://wa.me/+6281319898985" target="_blank" class="flex flex-wrap justify-center text-base font-semibold bg-green-400 bg-opacity-30 text-green-400 hover:shadow-lg hover:opacity-80 border-green-400 py-3 px-8 rounded-full transition duration-300 ease-in-out">
-
+                <div class="w-full self-center px-4 lg:w-1/2 reveal">
+                    <h1 class="text-base font-semibold text-primary md:text-xl">
+                        Hello Guys! I'm
+                        <span class="hero-name block font-bold text-4xl mt-1 lg:text-5xl">Daniel Pauly Retraubun</span>
+                    </h1>
+                    <h2 class="font-medium text-secondary text-lg mb-5 lg:text-2xl dark:text-white">
+                        Programmer |
+                        <span class="text-slate-600 dark:text-white">Indonesia</span> |
+                        <span class="text-slate-700 dark:text-white">Southeast Maluku</span> |
+                        <span class="text-slate-800 dark:text-white">Kei</span>
+                    </h2>
+                    <p class="font-medium text-secondary mb-10 reading-relaxed">
+                        Currently a T-Shaped person. Will become Comb-Shaped or X-Shaped one day. Always learning and adapting.
+                    </p>
+                    <a href="https://wa.me/+6281319898985" target="_blank"
+                       class="btn-cta inline-flex flex-wrap justify-center items-center text-base font-semibold bg-green-400 bg-opacity-30 text-green-400 hover:shadow-lg border-green-400 py-3 px-8 rounded-full transition duration-300 ease-in-out">
                         <span class="px-4">Contact Me via WhatsApp</span>
                         <svg class="w-6 h-6 text-green-400 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
-                        <path
-                            d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"
-                        ></path>
+                            <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
                         </svg>
                     </a>
                 </div>
-                <div class="w-full self-end px-4 lg:w-1/2">
+                <div class="w-full self-end px-4 lg:w-1/2 reveal">
                     <div class="relative mt-10 lg:mt-0 lg:right-0">
-                        <img src="dist/img/ddretna.png" alt="Daniel Pauly Retraubun" class="relative z-10 max-w-full mx-auto">
-                        <span class="absolute -bottom-0 left-1/2 -translate-x-1/2 md:scale-125">
-                            <svg width="400" height="400" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                                <path fill="#0ea5e9" d="M32.4,-52.1C45.8,-48.4,63.2,-47.4,73.1,-39.2C83,-31,85.6,-15.5,85.3,-0.2C85,15.2,81.8,30.3,69.4,34.1C56.9,38,35.1,30.5,22,27.6C8.8,24.8,4.4,26.7,-3.6,32.9C-11.6,39,-23.1,49.6,-35.1,51.7C-47.1,53.9,-59.4,47.7,-70.1,37.6C-80.8,27.6,-89.9,13.8,-86,2.2C-82.1,-9.3,-65.3,-18.7,-56.1,-31.3C-46.9,-44,-45.4,-60,-37.3,-66.7C-29.2,-73.5,-14.6,-71.1,-2.6,-66.6C9.5,-62.2,19,-55.8,32.4,-52.1Z" transform="translate(100 100) scale(1.1)" />
-                              </svg>
+                        <!-- data-parallax: foreground layer moves slightly faster than scroll -->
+                        <div class="hero-img-frame relative z-10 max-w-full mx-auto" data-parallax="0.15">
+                            <img src="dist/img/ddretna.png" alt="Daniel Pauly Retraubun"
+                                 class="relative z-10 max-w-full mx-auto"
+                                 style="filter: drop-shadow(0 8px 32px rgba(14,165,233,0.25));">
+                        </div>
+                        <!-- data-parallax: background blob moves slower creating depth -->
+                        <span class="absolute -bottom-0 left-1/2 -translate-x-1/2 md:scale-125" data-parallax="-0.2">
+                            <svg class="hero-blob" width="400" height="400" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="blobGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%"   stop-color="#0ea5e9"/>
+                                        <stop offset="50%"  stop-color="#6366f1"/>
+                                        <stop offset="100%" stop-color="#22d3ee"/>
+                                    </linearGradient>
+                                </defs>
+                                <path fill="url(#blobGrad)" d="M32.4,-52.1C45.8,-48.4,63.2,-47.4,73.1,-39.2C83,-31,85.6,-15.5,85.3,-0.2C85,15.2,81.8,30.3,69.4,34.1C56.9,38,35.1,30.5,22,27.6C8.8,24.8,4.4,26.7,-3.6,32.9C-11.6,39,-23.1,49.6,-35.1,51.7C-47.1,53.9,-59.4,47.7,-70.1,37.6C-80.8,27.6,-89.9,13.8,-86,2.2C-82.1,-9.3,-65.3,-18.7,-56.1,-31.3C-46.9,-44,-45.4,-60,-37.3,-66.7C-29.2,-73.5,-14.6,-71.1,-2.6,-66.6C9.5,-62.2,19,-55.8,32.4,-52.1Z" transform="translate(100 100) scale(1.1)" />
+                            </svg>
                         </span>
                     </div>
                 </div>
@@ -110,17 +205,63 @@
     <section id="about" class="pt-36 pb-32 dark:bg-dark">
         <div class="container">
         <div class="flex flex-wrap">
-            <div class="w-full px-4 mb-10 lg:w-1/2">
+            <div class="w-full px-4 mb-10 lg:w-1/2 reveal">
                 <h4 class="font-bold uppercase text-primary text-lg mb-3">About Me</h4>
-                <h2 class="font-bold text-dark text-3xl mb-5 max-w-md lg:text-4xl dark:text-white">Bachelor Degree in Engineering</h2>
-                <p class="font-medium text-base text-secondary max-w-xl lg:text-lg">Studied 📖 at Atma Jaya Yogyakarta University (UAJY), Faculty of Industrial Technology, Informatics Engineering study program, 👨‍🎓 graduated at 2014.</p>
-                <p class="font-medium text-base text-secondary max-w-xl lg:text-lg">I usually play 🎸 at my spare time, listen to the music 🎧 and play online games 🎮</p>
+                <h2 class="font-bold text-dark text-3xl mb-8 max-w-md lg:text-4xl dark:text-white">Bachelor Degree in Engineering</h2>
+                <p class="font-medium text-base text-secondary max-w-xl lg:text-lg mb-3">Studied at Atma Jaya Yogyakarta University (UAJY), Faculty of Industrial Technology, Informatics Engineering study program, graduated at 2014.</p>
+                <p class="font-medium text-base text-secondary max-w-xl lg:text-lg mb-3">I usually read at my spare time, listen to the music and play online games</p>
                 <p class="font-medium text-base text-secondary max-w-xl lg:text-lg">I'm always excited to learn new things, that can add knowledge and experience.</p>
             </div>
-            <div class="w-full px-4 lg:w-1/2">
+            <div class="w-full px-4 lg:w-1/2 reveal">
                 <h3 class="font-semibold text-dark text-2xl mb-4 lg:text-3xl lg:pt-10 dark:text-white">Let's Connect!</h3>
                 <p class="font-medium text-base text-secondary mb-6 lg:text-lg">Please add me on my social media accounts! </p>
-                <div class="flex items-center">
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- GitHub -->
+                    <a href="https://github.com/nyderetna" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                    </a>
+                    <!-- Codepen -->
+                    <a href="https://codepen.io/nyderetna" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>CodePen</title><path d="M18.144 13.067v-2.134L16.55 12zm1.276 1.194a.628.628 0 01-.006.083l-.005.028-.011.053-.01.031c-.005.016-.01.031-.017.047l-.014.03a.78.78 0 01-.021.043l-.019.03a.57.57 0 01-.08.1l-.026.025a.602.602 0 01-.036.03l-.029.022-.01.008-6.782 4.522a.637.637 0 01-.708 0L4.864 14.79l-.01-.008a.599.599 0 01-.065-.052l-.026-.025-.032-.034-.021-.028a.588.588 0 01-.067-.11l-.014-.031a.644.644 0 01-.017-.047l-.01-.03c-.004-.018-.008-.036-.01-.054l-.006-.028a.628.628 0 01-.006-.083V9.739c0-.028.002-.055.006-.083l.005-.027.011-.054.01-.03a.574.574 0 01.12-.217l.031-.034.026-.025a.62.62 0 01.065-.052l.01-.008 6.782-4.521a.638.638 0 01.708 0l6.782 4.521.01.008.03.022.035.03c.01.008.017.016.026.025a.545.545 0 01.08.1l.019.03a.633.633 0 01.021.043l.014.03c.007.016.012.032.017.047l.01.031c.004.018.008.036.01.054l.006.027a.619.619 0 01.006.083zM12 0C5.373 0 0 5.372 0 12 0 18.627 5.373 24 12 24c6.628 0 12-5.372 12-12 0-6.627-5.372-12-12-12m0 10.492L9.745 12 12 13.51 14.255 12zm.638 4.124v2.975l4.996-3.33-2.232-1.493zm-6.272-.356l4.996 3.33v-2.974l-2.764-1.849zm11.268-4.52l-4.996-3.33v2.974l2.764 1.85zm-6.272-.356V6.41L6.366 9.74l2.232 1.493zm-5.506 1.549v2.134L7.45 12Z"/></svg>
+                    </a>
+                    <!-- StackOverflow -->
+                    <a href="https://stackoverflow.com/users/2714096/danielpr" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Stack Overflow</title><path d="M15.725 0l-1.72 1.277 6.39 8.588 1.716-1.277L15.725 0zm-3.94 3.418l-1.369 1.644 8.225 6.85 1.369-1.644-8.225-6.85zm-3.15 4.465l-.905 1.94 9.702 4.517.904-1.94-9.701-4.517zm-1.85 4.86l-.44 2.093 10.473 2.201.44-2.092-10.473-2.203zM1.89 15.47V24h19.19v-8.53h-2.133v6.397H4.021v-6.396H1.89zm4.265 2.133v2.13h10.66v-2.13H6.154Z"/></svg>
+                    </a>
+                    <!-- Academia.edu -->
+                    <a href="https://uajy.academia.edu/DanielRetraubun" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Academia</title><path d="M22.033 21.18L13.77.459H7.869l1.049 2.623L1.836 21.18C1.574 22.098.787 22.23 0 22.361v1.18h6.82v-1.18C4.984 22.23 3.934 21.967 4.721 20c.131-.131.656-1.574 1.311-3.41h8.393l1.18 3.016c.131.525.262.918.262 1.311 0 1.049-.918 1.443-2.623 1.443v1.18H24v-1.18c-.918-.13-1.705-.393-1.967-1.18zM6.82 14.361a363.303 363.303 0 0 0 3.279-8.525l3.41 8.525H6.82z"/></svg>
+                    </a>
+                    <!-- Discord -->
+                    <a href="https://discordapp.com/users/ddretna/" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Discord</title><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                    </a>
+                    <!-- Instagram -->
+                    <a href="https://www.instagram.com/ddretna/" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Instagram</title><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
+                    </a>
+                    <!-- Facebook -->
+                    <a href="https://www.facebook.com/danielpaulyr" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    </a>
+                    <!-- Twitter -->
+                    <a href="https://twitter.com/ddretna" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Twitter</title><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                    </a>
+                    <!-- Youtube -->
+                    <a href="https://www.youtube.com/channel/UC6MQn1BLgAB3-Y4Zs8wC81A" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>YouTube</title><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                    </a>
+                    <!-- Steam -->
+                    <a href="https://steamcommunity.com/id/retraubun1/" target="_blank" class="social-icon w-9 h-9 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Steam</title><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        </div>
+    </section>
+    <!-- About Section End -->
                     <!-- GitHub -->
                     <a href="https://github.com/nyderetna" target="_blank" class="w-9 h-9 mr-3 rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white dark:text-white">
                         <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
@@ -168,39 +309,179 @@
     <!-- About Section End -->
     
     <!-- Portfolio Section Start -->
-    <section id="portfolio" class="pt-36 pb-16 bg-slate-100 dark:bg-slate-800">
+    <section id="portfolio" class="pt-36 pb-16">
         <div class="container">
             <div class="w-full px-4">
-                <div class="max-w-xl mx-auto text-center mb-16">
+                <div class="section-heading-center max-w-xl mx-auto text-center mb-16 reveal">
                     <h4 class="font-semibold text-lg text-primary mb-2">Portfolio</h4>
                     <h2 class="font-bold text-dark text-3xl mb-4 sm:text-4xl lg:text-5xl dark:text-white">Projects</h2>
-                    <p class="font-medium text-md text-secondary md:text-lg ">These are the projects I've worked on. Beside programming, I also have experience as technical support, project implementation support, and content creator for presentation. </p>
+                    <p class="font-medium text-md text-secondary md:text-lg">These are the projects I've worked on. Beside programming, I also have experience as technical support, project implementation support, and content creator for presentation.</p>
                 </div>
             </div>
-            <div class="w-full px-4 flex flex-wrap justify-center xl:w-10/12 xl:mx-auto">
-                <div class="mb-12 p-4 md:w-1/2">
-                    <div class="rounded-md shadow-md overflow-hidden">
-                        <img src="dist/img/portfolio/1.PNG" alt="Simple Dashboard" width="w-full">
+            <div class="flex flex-wrap justify-center -mx-4">
+                <!-- Card 1: Simple Dashboard -->
+                <div class="w-full sm:w-1/2 px-4 mb-10 reveal">
+                    <div class="portfolio-card bg-white dark:bg-slate-800 shadow-md flex flex-col h-full">
+                        <div class="img-wrap">
+                            <img src="dist/img/portfolio/1.PNG" alt="Simple Dashboard" class="w-full">
+                        </div>
+                        <div class="p-5 flex flex-col flex-1">
+                            <h3 class="font-bold text-lg text-primary mb-1 dark:text-sky-400">Simple Dashboard</h3>
+                            <p class="font-semibold text-base text-dark mb-2 dark:text-white">Bootstrap5, CodeIgniter4, Chart.js, MySQL &amp; jQuery DataTables</p>
+                            <p class="font-medium text-sm text-secondary flex-1">Create and build my own Dashboard app from scratch, compatible with mobile browsers and PC browsers.</p>
+                        </div>
                     </div>
-                    <h3 class="font-semibold text-xl text-dark mt-5 mb-3 dark:text-white">Simple Dashboard using Bootstrap5, CodeIgniter4, Chart.js, MySQL and jQuery DataTables.</h3>
-                    <p class="font-medium text-base text-secondary">Create and build my own Dashboard app from scratch, compatible with mobile browsers and PC browsers.</p>
                 </div>
-                <div class="mb-12 p-4 md:w-1/2">
-                    <div class="rounded-md shadow-md overflow-hidden">
-                        <img src="dist/img/portfolio/2.PNG" alt="Complex ERP" width="w-full">
+                <!-- Card 2: SignalBit ERP -->
+                <div class="w-full sm:w-1/2 px-4 mb-10 reveal">
+                    <div class="portfolio-card bg-white dark:bg-slate-800 shadow-md flex flex-col h-full">
+                        <div class="img-wrap">
+                            <img src="dist/img/portfolio/2.PNG" alt="SignalBit ERP" class="w-full">
+                        </div>
+                        <div class="p-5 flex flex-col flex-1">
+                            <h3 class="font-bold text-lg text-primary mb-1 dark:text-sky-400">SignalBit ERP</h3>
+                            <p class="font-semibold text-base text-dark mb-2 dark:text-white">Complex ERP for Garment Industries — Bootstrap3, Native PHP, MySQL &amp; jQuery DataTables</p>
+                            <p class="font-medium text-sm text-secondary flex-1">Build app for large scale garment factories, complete with modules for each department: Marketing, Purchasing, Inventory, Production, and more.</p>
+                        </div>
                     </div>
-                    <h3 class="font-semibold text-xl text-dark mt-5 mb-3 dark:text-white">Complex ERP specialized for Garment Industries using Bootstrap3, Native PHP, MySQL and jQuery DataTables.</h3>
-                    <p class="font-medium text-base text-secondary">Build app for large scale gament factories, complete with the module for each department needs, like Marketing, Purchasing, Inventory, Production, etc.</p>
                 </div>
-                <div class="mb-12 p-4 md:w-1/2">
-                    <div class="rounded-md shadow-md overflow-hidden">
-                        <img src="dist/img/portfolio/3.PNG" alt="Gantt-Chart Timeline" width="w-full">
+                <!-- Card 3: SynchroPlan -->
+                <div class="w-full sm:w-1/2 px-4 mb-10 reveal">
+                    <div class="portfolio-card bg-white dark:bg-slate-800 shadow-md flex flex-col h-full">
+                        <div class="img-wrap">
+                            <img src="dist/img/portfolio/3.PNG" alt="SynchroPlan Gantt Chart" class="w-full">
+                        </div>
+                        <div class="p-5 flex flex-col flex-1">
+                            <h3 class="font-bold text-lg text-primary mb-1 dark:text-sky-400">SynchroPlan</h3>
+                            <p class="font-semibold text-base text-dark mb-2 dark:text-white">Gantt-chart Timeline for Bus Parts Company — DayPilot JS, CodeIgniter3 &amp; MySQL</p>
+                            <p class="font-medium text-sm text-secondary flex-1">Build app to monitor bus parts production with each process timeline: bandsaw, stamping press, injection molding, welding, sewing, and more.</p>
+                        </div>
                     </div>
-                    <h3 class="font-semibold text-xl text-dark mt-5 mb-3 dark:text-white">Simple Gantt-chart timeline for Bus parts Company using daypilot js template, CodeIgniter3, and MySQL.</h3>
-                    <p class="font-medium text-base text-secondary">Build app to monitor bus parts production, with each timeline of process, like bandsaw, stamping press, injection molding, welding, sewing, etc.</p>
+                </div>
+                <!-- Card 4: FastReactPlan -->
+                <div class="w-full sm:w-1/2 px-4 mb-10 reveal">
+                    <div class="portfolio-card bg-white dark:bg-slate-800 shadow-md flex flex-col h-full">
+                        <div class="img-wrap">
+                            <div class="w-full h-full flex items-center justify-center relative overflow-hidden"
+                                 style="background: linear-gradient(135deg, #0f2942 0%, #1a3a5c 50%, #0f2942 100%);">
+                                <svg class="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <pattern id="frp-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0ea5e9" stroke-width="0.5"/>
+                                        </pattern>
+                                    </defs>
+                                    <rect width="100%" height="100%" fill="url(#frp-grid)"/>
+                                </svg>
+                                <div class="relative z-10 flex flex-col items-center gap-3">
+                                    <div class="flex items-center gap-3">
+                                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="24" cy="24" r="22" stroke="#0ea5e9" stroke-width="2.5" fill="none"/>
+                                            <path d="M34 16.5A13 13 0 1 0 34 31.5" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" fill="none"/>
+                                        </svg>
+                                        <div class="text-left">
+                                            <p class="text-[10px] font-semibold tracking-[0.25em] text-blue-300 uppercase">Coats Digital</p>
+                                            <p class="text-xl font-bold text-white leading-tight">FastReactPlan</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-medium px-3 py-1 rounded-full text-blue-200"
+                                          style="background: rgba(14,165,233,0.2); border: 1px solid rgba(14,165,233,0.4);">
+                                        Technical Support · 2019 – Present
+                                    </span>
+                                </div>
+                                <svg class="absolute bottom-0 left-0 right-0 opacity-20" height="48" viewBox="0 0 400 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="20"  y="8"  width="120" height="8" rx="4" fill="#0ea5e9"/>
+                                    <rect x="160" y="8"  width="80"  height="8" rx="4" fill="#6366f1"/>
+                                    <rect x="20"  y="22" width="60"  height="8" rx="4" fill="#6366f1"/>
+                                    <rect x="90"  y="22" width="140" height="8" rx="4" fill="#0ea5e9"/>
+                                    <rect x="20"  y="36" width="200" height="8" rx="4" fill="#0ea5e9"/>
+                                    <rect x="230" y="36" width="60"  height="8" rx="4" fill="#6366f1"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="p-5 flex flex-col flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h3 class="font-bold text-lg text-primary dark:text-sky-400">FastReactPlan</h3>
+                                <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
+                                      style="background: linear-gradient(135deg,rgba(14,165,233,0.15),rgba(99,102,241,0.15)); color:#0ea5e9; border:1px solid rgba(14,165,233,0.3);">
+                                    Present
+                                </span>
+                            </div>
+                            <p class="font-semibold text-base text-dark mb-2 dark:text-white">Technical Support — Coats Digital</p>
+                            <p class="font-medium text-sm text-secondary mb-3 flex-1">
+                                Providing technical support for <a href="https://www.coats.com/en/coats-digital/fast-react-systems/" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">FastReactPlan</a> — the leading garment production planning software used by 1,500+ manufacturers worldwide. Covering implementation, user training, data migration, and ongoing helpdesk support across Indonesia.
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-secondary dark:text-slate-300">Capacity Planning</span>
+                                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-secondary dark:text-slate-300">Production Scheduling</span>
+                                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-secondary dark:text-slate-300">Garment Industry</span>
+                                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-secondary dark:text-slate-300">ERP Implementation</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Card 5: Skill-Math -->
+                <div class="w-full sm:w-1/2 px-4 mb-10 reveal">
+                    <div class="portfolio-card bg-white dark:bg-slate-800 shadow-md flex flex-col h-full">
+                        <div class="img-wrap">
+                            <svg width="100%" height="100%" viewBox="0 0 480 220" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="smBg" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#064e3b"/>
+                                        <stop offset="50%" stop-color="#065f46"/>
+                                        <stop offset="100%" stop-color="#047857"/>
+                                    </linearGradient>
+                                    <pattern id="smGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+                                        <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.8"/>
+                                    </pattern>
+                                </defs>
+                                <rect width="480" height="220" fill="url(#smBg)"/>
+                                <rect width="480" height="220" fill="url(#smGrid)"/>
+                                <ellipse cx="380" cy="220" rx="220" ry="120" fill="rgba(16,185,129,0.12)"/>
+                                <ellipse cx="100" cy="0" rx="160" ry="80" fill="rgba(52,211,153,0.08)"/>
+                                <rect x="30" y="72" width="56" height="56" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(52,211,153,0.5)" stroke-width="1.5"/>
+                                <text x="43" y="113" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="26" fill="#34d399" letter-spacing="-1">S</text>
+                                <text x="61" y="113" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="26" fill="#6ee7b7" letter-spacing="-1">M</text>
+                                <text x="100" y="95" font-family="Arial, sans-serif" font-weight="700" font-size="20" fill="white" opacity="0.95">Skill-Math</text>
+                                <text x="100" y="115" font-family="Arial, sans-serif" font-weight="400" font-size="11" fill="rgba(255,255,255,0.6)" letter-spacing="1.5">GARMENT &amp; FOOTWEAR SaaS</text>
+                                <rect x="100" y="125" width="94" height="18" rx="9" fill="rgba(52,211,153,0.18)" stroke="rgba(52,211,153,0.4)" stroke-width="1"/>
+                                <text x="147" y="138" text-anchor="middle" font-family="Arial, sans-serif" font-weight="600" font-size="10" fill="#34d399">2020 – Present</text>
+                                <g opacity="0.55">
+                                    <rect x="240" y="140" width="18" height="54" rx="3" fill="#34d399"/>
+                                    <rect x="264" y="118" width="18" height="76" rx="3" fill="#6ee7b7"/>
+                                    <rect x="288" y="100" width="18" height="94" rx="3" fill="#34d399"/>
+                                    <rect x="312" y="126" width="18" height="68" rx="3" fill="#6ee7b7"/>
+                                    <rect x="336" y="92"  width="18" height="102" rx="3" fill="#34d399"/>
+                                    <rect x="360" y="108" width="18" height="86" rx="3" fill="#6ee7b7"/>
+                                    <polyline points="249,140 273,118 297,100 321,126 345,92 369,108"
+                                        fill="none" stroke="white" stroke-width="2" stroke-dasharray="4 3" opacity="0.6"/>
+                                </g>
+                                <rect x="0" y="188" width="480" height="32" fill="rgba(0,0,0,0.35)"/>
+                                <text x="20" y="209" font-family="Arial, sans-serif" font-size="11" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="0.5">System Analyst &amp; Developer · R&amp;D · Best Practices</text>
+                            </svg>
+                        </div>
+                        <div class="p-5 flex flex-col flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h3 class="font-bold text-lg text-primary dark:text-sky-400">Skill-Math</h3>
+                                <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full"
+                                      style="background: linear-gradient(135deg,rgba(52,211,153,0.15),rgba(16,185,129,0.15)); color:#10b981; border:1px solid rgba(52,211,153,0.35);">
+                                    Present
+                                </span>
+                            </div>
+                            <p class="font-semibold text-base text-dark mb-2 dark:text-white">System Analyst &amp; Developer — Yutama Kreasindo</p>
+                            <p class="font-medium text-sm text-secondary mb-3 flex-1">
+                                Serving as System Analyst and Developer at <a href="https://skill-math.com/" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Skill-Math</a> since 2020. Conducting R&amp;D to establish best practices in Time Study, Line Balancing, and Manpower Planning for garment and footwear factories.
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-secondary dark:text-slate-300">System Analysis</span>
+                                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-secondary dark:text-slate-300">Time Study</span>
+                                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-secondary dark:text-slate-300">Line Balancing</span>
+                                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-secondary dark:text-slate-300">R&amp;D</span>
+                                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-secondary dark:text-slate-300">SaaS</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
     </section>
     <!-- Portfolio Section End -->
 
@@ -209,31 +490,33 @@
     <!-- Matrix -->
 
     <!-- Clients Section Start -->
-    <section id="clients" class="pt-36 pb-32 bg-slate-700 dark:bg-slate-300">
-        <div class="container">
+    <section id="clients" class="pt-36 pb-32">
+        <div class="container relative z-10">
             <div class="w-full px-4">
-                <div class="mx-auto text-center mb-16">
+                <div class="mx-auto text-center mb-16 reveal">
                     <h4 class="font-semibold text-lg text-primary mb-2">Clients</h4>
-                    <h2 class="font-bold text-white text-3xl mb-4 sm:text-4xl lg:text-5xl ">Worked Together with:</h2>
-                    <p class="font-medium text-md text-secondary md:text-lg">These are clients that I currently work with, and worked with in the past</p>
+                    <h2 class="font-bold text-white text-3xl mb-4 sm:text-4xl lg:text-5xl">Worked Together with:</h2>
+                    <p class="font-medium text-md text-slate-300 md:text-lg">These are clients that I currently work with, and worked with in the past</p>
                 </div>
             </div>
-            <div class="w-full px-4">
-                <div class="flex flex-wrap items-center justify-center">
-                    <!-- <a href="#" class="max-w-[120px] mx-4 py-4 grayscale opacity-60 transition hover:grayscale-0 hover:opacity-100 duration-500 lg:mx-5 xl:mx-8">
-                        <img src="dist/img/clients/1.svg" alt="Tokopedia">
-                    </a>
-                    <a href="#" class="max-w-[120px] mx-4 py-4 grayscale opacity-60 transition hover:grayscale-0 hover:opacity-100 duration-500 lg:mx-5 xl:mx-8">
-                        <img src="dist/img/clients/2.svg" alt="Ferarri">
-                    </a>
-                    <a href="#" class="max-w-[120px] mx-4 py-4 grayscale opacity-60 transition hover:grayscale-0 hover:opacity-100 duration-500 lg:mx-5 xl:mx-8">
-                        <img src="dist/img/clients/3.svg" alt="Lamborghini">
-                    </a>
-
-                    <a href="#" class="max-w-[120px] mx-4 py-4 grayscale opacity-60 transition hover:grayscale-0 hover:opacity-100 duration-500 lg:mx-5 xl:mx-8">
-                        <img src="dist/img/clients/7.svg" alt="Blumhouse Ent.">
-                    </a>
-
+            <div class="w-full px-4 reveal">
+                <div class="client-coming-soon max-w-lg mx-auto">
+                    <svg class="w-14 h-14 opacity-50" viewBox="0 0 24 24" fill="none" stroke="url(#clientGrad)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <defs>
+                            <linearGradient id="clientGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#0ea5e9"/>
+                                <stop offset="100%" stop-color="#6366f1"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <h3 class="gradient-text font-bold text-2xl">Client List Coming Soon</h3>
+                    <p class="text-slate-400 text-center text-sm max-w-xs">
+                        I'm currently working with several clients across Indonesia. Details will be published here soon.
+                    </p>
                 </div>
             </div>
         </div>
@@ -244,36 +527,65 @@
     <section id="timeline" class="pt-36 pb-32 bg-slate-100 dark:bg-slate-800">
         <div class="container">
             <div class="w-full px-4">
-                <div class="max-w-xl mx-auto text-center mb-16">
+                <div class="max-w-xl mx-auto text-center mb-16 reveal">
                     <h4 class="font-semibold text-lg text-primary mb-2">Timeline</h4>
-                    <h2 class="font-bold text-dark text-3xl mb-4 sm:text-4xl lg:text-5xl dark:text-white">Journey of my Work</h2>    
+                    <h2 class="font-bold text-dark text-3xl mb-4 sm:text-4xl lg:text-5xl dark:text-white">Journey of my Work</h2>
                 </div>
             </div>
-            <div class="w-full px-4 justify-center items-center">
-                <ol class="relative border-l border-gray-200 dark:border-gray-700">
-                    <li class="mb-10 ml-6">
-                    <span class="flex absolute -left-3 justify-center items-center w-6 h-6 bg-blue-200 rounded-full ring-8 ring-white dark:ring-gray-900 dark:bg-blue-900">
-                    <svg class="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
-                    </span>
-                    <h3 class="flex items-center mb-1 text-lg font-semibold text-gray-900 dark:text-white">PT. Yutama Kreasindo<span class="bg-blue-100 text-blue-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-blue-200 dark:text-blue-800 ml-3">Present</span></h3>
-                    <time class="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">June 2019 - Present</time>
-                    <p class="mb-4 text-base font-normal text-gray-500 dark:text-gray-400">IT Consultant specialized on handling Garment Industries in a large scale</p>
+            <div class="w-full px-4 max-w-2xl mx-auto">
+                <ol class="relative border-l-2 border-gradient"
+                    style="border-image: linear-gradient(to bottom, #0ea5e9, #6366f1) 1;">
+                    <li class="mb-10 ml-8 timeline-item reveal">
+                        <span class="timeline-dot flex absolute -left-4 justify-center items-center w-8 h-8 bg-blue-100 rounded-full ring-4 ring-white dark:ring-slate-800 dark:bg-blue-900"
+                              style="box-shadow: 0 0 0 2px #0ea5e9;">
+                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                        </span>
+                        <div class="timeline-card">
+                            <h3 class="flex items-center mb-1 text-lg font-semibold text-gray-900 dark:text-white">
+                                <a href="https://yutama.co.id/" target="_blank" rel="noopener noreferrer"
+                                   class="hover:text-primary transition-colors duration-200">PT. Yutama Kreasindo</a>
+                                <span class="ml-3 text-xs font-medium px-2.5 py-0.5 rounded-full"
+                                      style="background: linear-gradient(135deg,rgba(14,165,233,0.15),rgba(99,102,241,0.15)); color:#0ea5e9; border: 1px solid rgba(14,165,233,0.3);">
+                                    Present
+                                </span>
+                            </h3>
+                            <time class="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">June 2019 &#8211; Present</time>
+                            <p class="text-base font-normal text-gray-500 dark:text-gray-400">
+                                Worked as a <strong class="text-gray-700 dark:text-gray-300">System Analyst and Development</strong> at <a href="https://yutama.co.id/" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Yutama Kreasindo</a> &#8212; a Jakarta-based technology company specializing in SaaS solutions for the garment and footwear industry, and the company behind <strong class="text-gray-700 dark:text-gray-300">Skill-Math</strong> and <strong class="text-gray-700 dark:text-gray-300">SignalBit ERP</strong>. Delivering digital transformation through Time Study, Line Balancing, and Manpower Planning tools used by factories across Indonesia, Vietnam, and Southeast Asia.
+                            </p>
+                        </div>
                     </li>
-                    <li class="mb-10 ml-6">
-                    <span class="flex absolute -left-3 justify-center items-center w-6 h-6 bg-blue-200 rounded-full ring-8 ring-white dark:ring-gray-900 dark:bg-blue-900">
-                    <svg class="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
-                    </span>
-                    <h3 class="mb-1 text-lg font-semibold text-gray-900 dark:text-white">PT. Jurnalindo Aksara Grafika (JAG)</h3>
-                    <time class="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">June 2017 - November 2017</time>
-                    <p class="text-base font-normal text-gray-500 dark:text-gray-400">A big multimedia business group consisting of Bisnis Indonesia, Solopos and Harian Jogja, which is published and broadcast in print, online, television and radio media formats.</p>
+                    <li class="mb-10 ml-8 timeline-item reveal">
+                        <span class="timeline-dot flex absolute -left-4 justify-center items-center w-8 h-8 bg-blue-100 rounded-full ring-4 ring-white dark:ring-slate-800 dark:bg-blue-900"
+                              style="box-shadow: 0 0 0 2px #6366f1;">
+                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                        </span>
+                        <div class="timeline-card">
+                            <h3 class="mb-1 text-lg font-semibold text-gray-900 dark:text-white">
+                                <a href="https://bisnisindonesiagroup.com/about" target="_blank" rel="noopener noreferrer"
+                                   class="hover:text-primary transition-colors duration-200">PT. Jurnalindo Aksara Grafika (JAG)</a>
+                            </h3>
+                            <time class="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">June 2017 &#8211; November 2017</time>
+                            <p class="text-base font-normal text-gray-500 dark:text-gray-400">
+                                Worked as <strong class="text-gray-700 dark:text-gray-300">MIS (Management Information System) Staff</strong> at <a href="https://bisnisindonesiagroup.com/about" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Bisnis Indonesia Group</a> &#8212; one of Indonesia&#39;s largest integrated media conglomerates, publishing and broadcasting across print, online, TV, and radio through brands including Bisnis Indonesia, Solopos, and Harian Jogja.
+                            </p>
+                        </div>
                     </li>
-                    <li class="mb-10 ml-6">
-                    <span class="flex absolute -left-3 justify-center items-center w-6 h-6 bg-blue-200 rounded-full ring-8 ring-white dark:ring-gray-900 dark:bg-blue-900">
-                    <svg class="w-3 h-3 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
-                    </span>
-                    <h3 class="mb-1 text-lg font-semibold text-gray-900 dark:text-white">PT. ALTO NETWORK</h3>
-                    <time class="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">February 2015 - July 2016</time>
-                    <p class="text-base font-normal text-gray-500 dark:text-gray-400">a service that provides shared ATM network between multiple Banks, with the idea that all the transactions from member banks are treated like on-us</p>
+                    <li class="mb-10 ml-8 timeline-item reveal">
+                        <span class="timeline-dot flex absolute -left-4 justify-center items-center w-8 h-8 bg-blue-100 rounded-full ring-4 ring-white dark:ring-slate-800 dark:bg-blue-900"
+                              style="box-shadow: 0 0 0 2px #22d3ee;">
+                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                        </span>
+                        <div class="timeline-card">
+                            <h3 class="mb-1 text-lg font-semibold text-gray-900 dark:text-white">
+                                <a href="https://www.alto.id/" target="_blank" rel="noopener noreferrer"
+                                   class="hover:text-primary transition-colors duration-200">PT. ALTO NETWORK</a>
+                            </h3>
+                            <time class="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">February 2015 &#8211; July 2016</time>
+                            <p class="text-base font-normal text-gray-500 dark:text-gray-400">
+                                Worked as a <strong class="text-gray-700 dark:text-gray-300">Programmer</strong> at <a href="https://www.alto.id/" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">ALTO Network</a> &#8212; a leading Indonesian payment switching company providing shared ATM network infrastructure across multiple banks, enabling seamless and secure interbank transactions as if they were on-us.
+                            </p>
+                        </div>
                     </li>
                 </ol>
             </div>
@@ -285,101 +597,164 @@
     <footer class="bg-dark pt-24 pb-12">
         <div class="container">
             <div class="flex flex-wrap">
-                <div class="w-full px-4 mb-12 text-slate-300 font-medium md:w-1/3">
-                    <h2 class="font-bold text-4xl text-white mb-5"><img src="dist/img/dpr-no-bg.png" alt="danielpaulyr" width="40%"></h2>
-                    <h3 class="font-bold text-2xl mb-2">Contact Me</h3>
-                    <p>📧 : nyderetna@gmail.com</p>
+                <div class="w-full px-4 mb-12 text-slate-300 font-medium md:w-1/3 reveal">
+                    <h2 class="font-bold text-4xl text-white mb-5">
+                        <img src="dist/img/dpr-no-bg.png" alt="danielpaulyr" width="40%"
+                             style="filter: drop-shadow(0 2px 12px rgba(14,165,233,0.4));">
+                    </h2>
+                    <h3 class="font-bold text-2xl mb-2 gradient-text">Contact Me</h3>
+                    <p>📧 nyderetna@gmail.com</p>
                     <p>📍 Jl. Boulevard - Pondok Hijau Permai</p>
                     <p>Kota Bekasi</p>
                 </div>
-                <div class="w-full px-4 mb-12 md:w-1/3">
+                <div class="w-full px-4 mb-12 md:w-1/3 reveal">
                     <h3 class="font-semibold text-xl text-white mb-5">Life Story</h3>
                     <ul class="text-slate-300">
-                        <li>
-                            <a href="#" class="inline-block text-base hover:text-primary mb-3">Programming</a>
-                        </li>
-                        <li>
-                            <a href="#" class="inline-block text-base hover:text-primary mb-3">Technology</a>
-                        </li>
-                        <li>
-                            <a href="#" class="inline-block text-base hover:text-primary mb-3">Lifestyle</a>
-                        </li>
+                        <li><a href="#" class="inline-block text-base hover:text-primary mb-3 transition-colors">Programming</a></li>
+                        <li><a href="#" class="inline-block text-base hover:text-primary mb-3 transition-colors">Technology</a></li>
+                        <li><a href="#" class="inline-block text-base hover:text-primary mb-3 transition-colors">Lifestyle</a></li>
                     </ul>
                 </div>
-                <div class="w-full px-4 mb-12 md:w-1/3">
+                <div class="w-full px-4 mb-12 md:w-1/3 reveal">
                     <h3 class="font-semibold text-xl text-white mb-5">Links</h3>
                     <ul class="text-slate-300">
-                        <li>
-                            <a href="#home" class="inline-block text-base hover:text-primary mb-3">Home</a>
-                        </li>
-                        <li>
-                            <a href="#about" class="inline-block text-base hover:text-primary mb-3">About</a>
-                        </li>
-                        <li>
-                            <a href="#clients" class="inline-block text-base hover:text-primary mb-3">Clients</a>
-                        </li>
-                        <li>
-                            <a href="#timeline" class="inline-block text-base hover:text-primary mb-3">Work Timeline</a>
-                        </li>
+                        <li><a href="#home"     class="inline-block text-base hover:text-primary mb-3 transition-colors">Home</a></li>
+                        <li><a href="#about"    class="inline-block text-base hover:text-primary mb-3 transition-colors">About</a></li>
+                        <li><a href="#clients"  class="inline-block text-base hover:text-primary mb-3 transition-colors">Clients</a></li>
+                        <li><a href="#timeline" class="inline-block text-base hover:text-primary mb-3 transition-colors">Work Timeline</a></li>
                     </ul>
                 </div>
             </div>
             <div class="w-full pt-10 border-t border-slate-700">
-                <div class="flex items-center justify-center mb-5 ">
+                <div class="flex flex-wrap items-center justify-center mb-5 gap-2">
                     <!-- GitHub -->
-                    <a href="https://github.com/nyderetna" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-                    </a>
-                    <!-- Codepen -->
-                    <a href="https://codepen.io/nyderetna" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>CodePen</title><path d="M18.144 13.067v-2.134L16.55 12zm1.276 1.194a.628.628 0 01-.006.083l-.005.028-.011.053-.01.031c-.005.016-.01.031-.017.047l-.014.03a.78.78 0 01-.021.043l-.019.03a.57.57 0 01-.08.1l-.026.025a.602.602 0 01-.036.03l-.029.022-.01.008-6.782 4.522a.637.637 0 01-.708 0L4.864 14.79l-.01-.008a.599.599 0 01-.065-.052l-.026-.025-.032-.034-.021-.028a.588.588 0 01-.067-.11l-.014-.031a.644.644 0 01-.017-.047l-.01-.03c-.004-.018-.008-.036-.01-.054l-.006-.028a.628.628 0 01-.006-.083V9.739c0-.028.002-.055.006-.083l.005-.027.011-.054.01-.03a.574.574 0 01.12-.217l.031-.034.026-.025a.62.62 0 01.065-.052l.01-.008 6.782-4.521a.638.638 0 01.708 0l6.782 4.521.01.008.03.022.035.03c.01.008.017.016.026.025a.545.545 0 01.08.1l.019.03a.633.633 0 01.021.043l.014.03c.007.016.012.032.017.047l.01.031c.004.018.008.036.01.054l.006.027a.619.619 0 01.006.083zM12 0C5.373 0 0 5.372 0 12 0 18.627 5.373 24 12 24c6.628 0 12-5.372 12-12 0-6.627-5.372-12-12-12m0 10.492L9.745 12 12 13.51 14.255 12zm.638 4.124v2.975l4.996-3.33-2.232-1.493zm-6.272-.356l4.996 3.33v-2.974l-2.764-1.849zm11.268-4.52l-4.996-3.33v2.974l2.764 1.85zm-6.272-.356V6.41L6.366 9.74l2.232 1.493zm-5.506 1.549v2.134L7.45 12Z"/></svg>
-                    </a>
-                    <!-- StackOverflow -->
-                    <a href="https://stackoverflow.com/users/2714096/danielpr" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Stack Overflow</title><path d="M15.725 0l-1.72 1.277 6.39 8.588 1.716-1.277L15.725 0zm-3.94 3.418l-1.369 1.644 8.225 6.85 1.369-1.644-8.225-6.85zm-3.15 4.465l-.905 1.94 9.702 4.517.904-1.94-9.701-4.517zm-1.85 4.86l-.44 2.093 10.473 2.201.44-2.092-10.473-2.203zM1.89 15.47V24h19.19v-8.53h-2.133v6.397H4.021v-6.396H1.89zm4.265 2.133v2.13h10.66v-2.13H6.154Z"/></svg>
-                    </a>
-                    <!-- Academia.edu -->
-                    <a href="https://uajy.academia.edu/DanielRetraubun" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Academia</title><path d="M22.033 21.18L13.77.459H7.869l1.049 2.623L1.836 21.18C1.574 22.098.787 22.23 0 22.361v1.18h6.82v-1.18C4.984 22.23 3.934 21.967 4.721 20c.131-.131.656-1.574 1.311-3.41h8.393l1.18 3.016c.131.525.262.918.262 1.311 0 1.049-.918 1.443-2.623 1.443v1.18H24v-1.18c-.918-.13-1.705-.393-1.967-1.18zM6.82 14.361a363.303 363.303 0 0 0 3.279-8.525l3.41 8.525H6.82z"/></svg>
-                    </a>
-                    <!-- Discord --> 
-                    <a href="https://discordapp.com/users/ddretna/" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Discord</title><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+                    <a href="https://github.com/nyderetna" target="_blank" class="social-icon w-9 h-9 text-white rounded-full flex justify-center items-center border border-slate-600 hover:border-primary hover:bg-primary">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24"><title>GitHub</title><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
                     </a>
                     <!-- Instagram -->
-                    <a href="https://www.instagram.com/ddretna/" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Instagram</title><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
-                    </a>
-                    <!-- Facebook -->
-                    <a href="https://www.facebook.com/danielpaulyr" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Facebook</title><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    <a href="https://www.instagram.com/ddretna/" target="_blank" class="social-icon w-9 h-9 text-white rounded-full flex justify-center items-center border border-slate-600 hover:border-primary hover:bg-primary">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24"><title>Instagram</title><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
                     </a>
                     <!-- Twitter -->
-                    <a href="https://twitter.com/ddretna" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Twitter</title><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                    <a href="https://twitter.com/ddretna" target="_blank" class="social-icon w-9 h-9 text-white rounded-full flex justify-center items-center border border-slate-600 hover:border-primary hover:bg-primary">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24"><title>Twitter</title><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
                     </a>
-                    <!-- Youtube -->
-                    <a href="https://www.youtube.com/channel/UC6MQn1BLgAB3-Y4Zs8wC81A" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>YouTube</title><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                    </a>
-                    <!-- Steam -->
-                    <a href="https://steamcommunity.com/id/retraubun1/" target="_blank" class="w-9 h-9 mr-3 text-white rounded-full flex justify-center items-center border border-slate-300 hover:border-primary hover:bg-primary hover:text-white">
-                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Steam</title><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg>
+                    <!-- YouTube -->
+                    <a href="https://www.youtube.com/channel/UC6MQn1BLgAB3-Y4Zs8wC81A" target="_blank" class="social-icon w-9 h-9 text-white rounded-full flex justify-center items-center border border-slate-600 hover:border-primary hover:bg-primary">
+                        <svg class="fill-current" role="img" width="20" viewBox="0 0 24 24"><title>YouTube</title><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
                     </a>
                 </div>
-                <p class="font-medium text-[0.75rem] text-slate-500 text-center">Made with <span class="text-red-400">❤</span> by <a href="https://www.instagram.com/ddretna/" target="_blank" class="hover:underline">Daniel Pauly Retraubun</a>, using Tailwind CSS</p>
+                <p class="font-medium text-[0.75rem] text-slate-500 text-center">
+                    Made with <span class="text-red-400">❤️</span> by
+                    <a href="https://www.instagram.com/ddretna/" target="_blank" class="hover:underline hover:text-primary transition-colors">Daniel Pauly Retraubun</a>,
+                    using Tailwind CSS
+                </p>
             </div>
         </div>
     </footer>
     <!-- Footer End -->
 
     <!-- Back to Top Start -->
-    <a href="#home" id="to-top" class="hidden items-center justify-center h-14 w-14 bg-primary hover:animate-pulse rounded-full z-[9999] bottom-4 p-4 fixed right-4">
-        <span class="block w-5 h-5 mt-2 rotate-45 border-t-2 border-l-2"></span>
-    </a>    
+    <a href="#home" id="to-top" class="hidden items-center justify-center h-14 w-14 rounded-full z-[9999] bottom-4 p-4 fixed right-4">
+        <span class="block w-5 h-5 mt-2 rotate-45 border-t-2 border-l-2 border-white"></span>
+    </a>
     <!-- Back to Top End -->
 
-    <script src="dist/js/script.js"></script>
-    <script src="dist/js/matrix.js"></script>
+    <script src="dist/js/script.js" defer></script>
+    <script src="dist/js/matrix.js" defer></script>
+    <script src="dist/js/animations.js" defer></script>
+
+    <!-- Hidden Google Translate element -->
+    <div id="google_translate_element" style="display:none;"></div>
+
+    <!-- Google Translate API loader -->
+    <script>
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'en',
+            autoDisplay: false
+        }, 'google_translate_element');
+    }
+    </script>
+    <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
+
+    <!-- Language selector controller -->
+    <script>
+    (function () {
+        var wrap     = document.getElementById('langWrap');
+        var btn      = document.getElementById('langBtn');
+        var label    = document.getElementById('langLabel');
+        var dropdown = document.getElementById('langDropdown');
+
+        // Toggle open/close
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var isOpen = wrap.classList.toggle('open');
+            btn.setAttribute('aria-expanded', isOpen);
+        });
+
+        // Close on outside click
+        document.addEventListener('click', function () {
+            wrap.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+        });
+
+        // Pick a language
+        dropdown.addEventListener('click', function (e) {
+            var opt = e.target.closest('.lang-option');
+            if (!opt) return;
+
+            var langCode = opt.dataset.lang;
+            var langLbl  = opt.dataset.label;
+
+            // Update active state
+            dropdown.querySelectorAll('.lang-option').forEach(function (el) {
+                el.classList.remove('active');
+            });
+            opt.classList.add('active');
+
+            // Update button label
+            label.textContent = langLbl;
+
+            // Close dropdown
+            wrap.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+
+            // Trigger Google Translate
+            translatePage(langCode);
+        });
+
+        function translatePage(langCode) {
+            // Google Translate sets a cookie and reads the select element it injects
+            var cookieName = '/en/' + langCode;
+            // Use the injected <select> if available (most reliable method)
+            var select = document.querySelector('.goog-te-combo');
+            if (select) {
+                select.value = langCode;
+                select.dispatchEvent(new Event('change'));
+                return;
+            }
+            // Fallback: set cookie and reload
+            var domain = location.hostname === 'localhost' ? 'localhost' : location.hostname;
+            document.cookie = 'googtrans=' + cookieName + '; path=/; domain=' + domain;
+            document.cookie = 'googtrans=' + cookieName + '; path=/';
+            location.reload();
+        }
+
+        // On page load: restore last language from cookie
+        var match = document.cookie.match(/googtrans=\/en\/([^;]+)/);
+        if (match) {
+            var savedLang = match[1];
+            var savedOpt  = dropdown.querySelector('[data-lang="' + savedLang + '"]');
+            if (savedOpt) {
+                dropdown.querySelectorAll('.lang-option').forEach(function (el) {
+                    el.classList.remove('active');
+                });
+                savedOpt.classList.add('active');
+                label.textContent = savedOpt.dataset.label;
+            }
+        }
+    })();
+    </script>
 </body>
 </html>
